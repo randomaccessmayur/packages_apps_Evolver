@@ -47,7 +47,14 @@ import java.util.List;
 public class QuickSettings extends SettingsPreferenceFragment implements
         Preference.OnPreferenceChangeListener {
 
+    private static final String KEY_SHOW_BRIGHTNESS_SLIDER = "qs_show_brightness_slider";
+    private static final String KEY_BRIGHTNESS_SLIDER_POSITION = "qs_brightness_slider_position";
+    private static final String KEY_SHOW_AUTO_BRIGHTNESS = "qs_show_auto_brightness";
+
     private ListPreference mQuickPulldown;
+    private ListPreference mBrightnessSliderPosition;
+    private ListPreference mShowBrightnessSlider;
+    private SwitchPreference mShowAutoBrightness;
 
     @Override
     public void onCreate(Bundle icicle) {
@@ -64,6 +71,23 @@ public class QuickSettings extends SettingsPreferenceFragment implements
         mQuickPulldown.setValue(String.valueOf(qpmode));
         mQuickPulldown.setSummary(mQuickPulldown.getEntry());
         mQuickPulldown.setOnPreferenceChangeListener(this);
+
+        mShowBrightnessSlider = findPreference(KEY_SHOW_BRIGHTNESS_SLIDER);
+        mShowBrightnessSlider.setOnPreferenceChangeListener(this);
+        boolean showSlider = Settings.Secure.getIntForUser(resolver,
+                Settings.Secure.QS_SHOW_BRIGHTNESS_SLIDER, 1, UserHandle.USER_CURRENT) > 0;
+
+        mBrightnessSliderPosition = findPreference(KEY_BRIGHTNESS_SLIDER_POSITION);
+        mBrightnessSliderPosition.setEnabled(showSlider);
+
+        mShowAutoBrightness = findPreference(KEY_SHOW_AUTO_BRIGHTNESS);
+        boolean automaticAvailable = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_automatic_brightness_available);
+        if (automaticAvailable) {
+            mShowAutoBrightness.setEnabled(showSlider);
+        } else {
+            prefSet.removePreference(mShowAutoBrightness);
+        }
     }
 
     @Override
@@ -77,6 +101,12 @@ public class QuickSettings extends SettingsPreferenceFragment implements
             int index = mQuickPulldown.findIndexOfValue((String) newValue);
             mQuickPulldown.setSummary(
                     mQuickPulldown.getEntries()[index]);
+            return true;
+        } else if (preference == mShowBrightnessSlider) {
+            int value = Integer.parseInt((String) newValue);
+            mBrightnessSliderPosition.setEnabled(value > 0);
+            if (mShowAutoBrightness != null)
+                mShowAutoBrightness.setEnabled(value > 0);
             return true;
         }
         return false;
